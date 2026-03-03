@@ -2,16 +2,19 @@ import argparse
 import random
 import urllib.request
 from collections import Counter
+from cowsay import cowsay
 
 
 def bullscows(guess: str, secret: str) -> tuple[int, int]:
-    b = sum(g == s for g, s in zip(guess, secret))
+    if len(guess) != len(secret):
+        raise ValueError("У слов должна быть одинаковая длина")
+    bulls = sum(g == s for g, s in zip(guess, secret))
 
     g_rest = [g for g, s in zip(guess, secret) if g != s]
     s_rest = [s for g, s in zip(guess, secret) if g != s]
-    c = sum((Counter(g_rest) & Counter(s_rest)).values())
+    cows = sum((Counter(g_rest) & Counter(s_rest)).values())
 
-    return b, c
+    return bulls, cows
 
 
 def gameplay(ask, inform, words: list[str]) -> int:
@@ -22,7 +25,11 @@ def gameplay(ask, inform, words: list[str]) -> int:
         guess = ask("Введите слово: ", words)
         tries += 1
 
-        b, c = bullscows(guess, secret)
+        try:
+            b, c = bullscows(guess, secret)
+        except ValueError as e:
+            print(e)
+            continue
         inform("Быки: {}, Коровы: {}", b, c)
 
         if guess == secret:
@@ -38,7 +45,7 @@ def ask(prompt: str, valid: list[str] = None) -> str:
 
 
 def inform(format_string: str, bulls: int, cows: int) -> None:
-    msg = format_string.format(bulls, cows)
+    msg = cowsay(format_string.format(bulls, cows))
     print(msg)
 
 
