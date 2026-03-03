@@ -38,11 +38,12 @@ def gameplay(ask, inform, words: list[str]) -> int:
 
 def ask(prompt: str, valid: list[str] = None) -> str:
     while True:
-        s = input(prompt).strip().lower()
+        msg = cowsay(prompt)
+        print(msg)
+        s = input().strip().lower()
         if (not valid) or (s in valid):
             return s
         print("Недопустимое слово")
-
 
 def inform(format_string: str, bulls: int, cows: int) -> None:
     msg = cowsay(format_string.format(bulls, cows))
