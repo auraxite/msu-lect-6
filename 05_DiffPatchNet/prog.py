@@ -35,9 +35,26 @@ async def chat(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
                 line = data.decode().strip()
                 if not line:
                     continue
+
                 args = shlex.split(line)
 
                 match args:
+                    case ["who"]:
+                        if me not in logged_users:
+                            await clients[me].put("Login first")
+                        else:
+                            await clients[me].put(" ".join(sorted(logged_users)))
+
+                    case ["cows"]:
+                        if me not in logged_users:
+                            await clients[me].put("Login first")
+                        else:
+                            free = sorted(
+                                cow for cow in cowsay.list_cows()
+                                if cow not in logged_users
+                            )
+                            await clients[me].put(" ".join(free))
+
                     case ["login", cow]:
                         if me in logged_users:
                             await clients[me].put("You are logged in")
@@ -51,6 +68,19 @@ async def chat(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
                             me = cow
                             logged_users.add(me)
                             await clients[me].put(f"Logged in as {me}")
+
+                    case ["quit"]:
+                        send.cancel()
+                        receive.cancel()
+
+                        if me in logged_users:
+                            logged_users.remove(me)
+
+                        print(me, "DONE")
+                        del clients[me]
+                        writer.close()
+                        await writer.wait_closed()
+                        return
 
                     case _:
                         if me not in logged_users:
