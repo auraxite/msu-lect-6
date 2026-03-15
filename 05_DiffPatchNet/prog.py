@@ -13,9 +13,8 @@ logged_users = set()
 
 async def chat(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
     me = f"anon_{id(writer)}"
-    print(me)
-
     clients[me] = asyncio.Queue()
+
     send = asyncio.create_task(reader.readline())
     receive = asyncio.create_task(clients[me].get())
 
@@ -36,7 +35,11 @@ async def chat(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
                 if not line:
                     continue
 
-                args = shlex.split(line)
+                try:
+                    args = shlex.split(line)
+                except ValueError:
+                    await clients[me].put("Invalid arguments")
+                    continue
 
                 match args:
                     case ["who"]:
@@ -68,6 +71,28 @@ async def chat(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
                             me = cow
                             logged_users.add(me)
                             await clients[me].put(f"Logged in as {me}")
+
+                    case ["say", target, *text_parts]:
+                        if me not in logged_users:
+                            await clients[me].put("Login first")
+                        elif not text_parts:
+                            await clients[me].put("Invalid arguments")
+                        elif target not in logged_users:
+                            await clients[me].put("No such user")
+                        else:
+                            message = cowsay.cowsay(" ".join(text_parts), cow=me)
+                            await clients[target].put(message)
+
+                    case ["yield", *text_parts]:
+                        if me not in logged_users:
+                            await clients[me].put("Login first")
+                        elif not text_parts:
+                            await clients[me].put("Invalid arguments")
+                        else:
+                            message = cowsay.cowsay(" ".join(text_parts), cow=me)
+                            for user in logged_users:
+                                if user != me:
+                                    await clients[user].put(message)
 
                     case ["quit"]:
                         send.cancel()
